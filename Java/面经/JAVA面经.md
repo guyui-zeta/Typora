@@ -55,6 +55,8 @@ https://blog.csdn.net/CringKong/article/details/79994511
 
 ## 3.死锁的四个必要条件、预防和避免【破解】方法
 
+https://blog.csdn.net/zhangpower1993/article/details/89518780
+
 - 死锁的概念
   - 多个并发进程因争夺系统资源而产生相互等待的现象
 - 死锁产生的四个必要条件：

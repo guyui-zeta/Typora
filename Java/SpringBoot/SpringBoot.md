@@ -2103,3 +2103,144 @@ spring.mvc.format.date=yyyy-MM-dd
 不按照这个格式输入数据，会报错
 ```
 
+- 利用sb自动配置的隐藏域过滤器，实现动态调整add/update的页面功能
+
+- 隐藏域过滤器的作用：
+  - 在html页面中隐藏数据或请求方式，根据th：if条件动态调整
+
+```html
+<!--发送put请求修改员工数据-->
+<!--
+    隐藏域
+    1、SpringMVC中配置HiddenHttpMethodFilter;（SpringBoot自动配置好的）
+    2、页面创建一个post表单
+    3、创建一个input项，name="_method";值就是我们指定的请求方式
+-->
+<input type="hidden" name="_method" value="put" th:if="${emp!=null}"/>
+<input type="hidden" name="id" th:if="${emp!=null}" th:value="${emp.id}">
+```
+
+
+
+### 8）CRUD-员工删除
+
+略
+
+## 7.错误处理机制
+
+
+
+### 1）SpirngBoot默认的错误处理机制
+
+默认效果：
+
+- 1.浏览器：返回一个默认的错误页面
+
+![image-20210925095516745](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925095516745.png)
+
+浏览器发送请求的请求头：【来区分浏览器】
+
+![image-20210925103129372](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925103129372.png)
+
+- 2.如果是其他客户端访问，默认响应一个json数据
+
+![image-20210925095617442](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925095617442.png)
+
+其他客户端访问时发送的请求头：
+
+![image-20210925103231957](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925103231957.png)
+
+- 原理：
+
+  - 可以参照ErrorMvcAutoConfiguration：错误处理的自动配置
+
+  - 给容器中添加了以下组件：
+
+    - 1.DefaultErrorAttributes
+      - 帮我们在页面共享信息
+    - 2.BasicErrorController：处理默认的/error请求
+
+    ```java
+    @Controller
+    @RequestMapping({"${server.error.path:${error.path:/error}}"})
+    public class BasicErrorController extends AbstractErrorController {
+        
+       @RequestMapping(
+            produces = {"text/html"}//产生HTML类型的数据
+        )
+        public ModelAndView errorHtml(HttpServletRequest request, HttpServletResponse response) {
+            HttpStatus status = this.getStatus(request);
+            Map<String, Object> model = Collections.unmodifiableMap(this.getErrorAttributes(request, this.getErrorAttributeOptions(request, MediaType.TEXT_HTML)));
+            response.setStatus(status.value());
+            //去哪个页面作为错误页面；mdv包含页面地址和内容
+            ModelAndView modelAndView = this.resolveErrorView(request, response, status, model);
+            return modelAndView != null ? modelAndView : new ModelAndView("error", model);
+        }
+    
+        @RequestMapping
+        public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {//产生jason类型数据，其他客户端来到这个方法处理
+            //spirngBoot2.0中没有@ResponseBody，但是在ResponseEntity中如果是map、list、或者javabean的话，输出也是json
+            HttpStatus status = this.getStatus(request);
+            if (status == HttpStatus.NO_CONTENT) {
+                return new ResponseEntity(status);
+            } else {
+                Map<String, Object> body = this.getErrorAttributes(request, this.getErrorAttributeOptions(request, MediaType.ALL));
+                return new ResponseEntity(body, status);
+            }
+        }
+        
+    ```
+
+    - 3.ErrorPageCustomizer
+
+    ```java
+     @Value("${error.path:/error}")
+     private String path = "/error";
+    系统出现错误以后，来到error请求进行处理（web.xml注册的错误页面规则
+    ```
+
+    
+
+    - 4.DefaultErrorViewResolver
+      - 默认SpringBoot会找到一个页面：error/404
+      - 模板引擎可以解析这个 页面地址就用模板引擎解析，返回到errorViewName指定的视图地址
+      - 模板引擎不可用，就在静态资源文件夹下找errorViewName对应的页面
+
+
+
+- 步骤：
+  - 1.一旦系统出现了4xx或者5xx之类的错误；EooroPageCustomerizer就会生效（定制错误的响应规则）；就会来到/error请求
+  - 2.会被BasicErrorController处理（两种方式处理）
+    - 响应页面：去哪个页面是由DefaultErrorViewResolver解析得到的
+    - 响应json数据
+
+
+
+### 2）如何定制错误响应：
+
+- 1.如何定制错误的页面
+
+  - 有模板引擎的情况下：error/状态码【将错误页面命名为 错误状态码.html 放在模板引擎文件夹的error文件夹下】发生此状态码的错误就会来到该页面
+
+    我们可以使用4xx和5xx作为错误页面的文件名来匹配这种类型的所有错误，精确优先
+
+  ![image-20210925105248476](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925105248476.png)
+
+  - 页面能获取的信息：
+
+    ​	timestamp：时间戳
+
+    ​	status：状态码
+
+    ​	error：错误提示
+
+    ​	exception：异常对象
+
+    ​	message：异常消息
+
+  ​		    errors：JSR303数据校验的错误
+
+  - 没有模板引擎的情况下：在静态资源文件夹下找
+
+- 2.如何定制错误的json数据
+

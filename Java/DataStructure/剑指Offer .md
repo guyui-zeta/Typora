@@ -1,4 +1,7 @@
+# 一、栈与队列（简单）
+
 # 剑指 Offer 09. 用两个栈实现队列
+
 ![image-20210912181339331](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210912181339331.png)
 ## 思路&方法
 题目已经标明了方法：双栈。
@@ -123,6 +126,10 @@ class MinStack {
 
 
 
+# -------------------------------------------
+
+# 二、链表（简单）
+
 # 剑指 Offer 06. 从尾到头打印链表
 
 ![image-20210912181409779](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210912181409779.png)
@@ -130,6 +137,8 @@ class MinStack {
 ## 思路&方法
 
 常规逆序题，第一反应是递归和栈实现
+
+
 
 ## 【方法1：递归实现逆序】
 
@@ -385,6 +394,10 @@ class Solution {
 
 2.遇到需要额外空间来复制数据的时候，可以选择在原有的数据内存中复制，然后拆分，节省O(n)的内存空间
 
+# -------------------------------------------
+
+# 三、字符串（简单）
+
 # 剑指 Offer 05. 替换空格
 
 ![image-20210914140747086](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210914140747086.png)
@@ -501,7 +514,9 @@ public String reverseLeftWords(String s, int n) {
 
 2.遇到这种环形结构的题目，**取模**会用到很多，而且有时候效果出奇
 
+# -------------------------------------------
 
+# 四、查找算法（简单）
 
 # 剑指 Offer 03. 数组中重复的数字
 
@@ -692,6 +707,10 @@ class Solution {
 
 查找就用二分法
 
+# -------------------------------------------
+
+# 五、查找算法（中等）
+
 # 剑指 Offer 04. 二维数组的查找
 
 ![image-20210916090227500](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210916090227500.png)
@@ -844,6 +863,10 @@ class Solution {
 ## 总结&注意
 
 没有更好的办法
+
+# -------------------------------------------
+
+# 六、搜索与回溯算法（简单）
 
 # 剑指 Offer 32-I. 从上到下打印二叉树
 
@@ -1070,6 +1093,10 @@ class Solution {
 
 以后的正序逆序打印都可以用双端队列来实现
 
+# -------------------------------------------
+
+# 七、搜索与回溯算法（简单）
+
 # 剑指 Offer 26. 树的子结构
 
 ![image-20210923110001958](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210923110001958.png)
@@ -1219,7 +1246,7 @@ class Solution {
 
 **树的遍历方法：**==<u>递归、DFS【栈】、BFS【队列】</u>==
 
-# 剑指 Offer 27. 二叉树的镜像
+# 剑指 Offer 28. 对称的二叉树
 
 ![image-20210923152146226](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210923152146226.png)
 
@@ -1275,4 +1302,103 @@ class Solution {
 - 4.如果返回值是boolean类型，需要分清楚&&和||的区别
   - &&：表示都要成立
   - ||：表示只需要成立一个即可
+
+# -------------------------------------------
+
+# 八、动态规划（简单）
+
+# 剑指 Offer 10-I. 斐波那契数列
+
+![image-20210925141020989](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210925141020989.png)
+
+## 思路&方法
+
+典型的动态规划题目（DP）
+
+https://www.zhihu.com/question/23995189
+
+注意：不能采用数组记录数据，否则就违背了”无后效性“原则
+
+### 【方法1：动态规划DP】
+
+```java
+class Solution {
+    public int fib(int n) {
+        //典型的动态规划题目
+        //思路：
+        //注意：不能用数组记录，否则就违背了“无后效性”原则
+        //1.确定关系式
+        //2.不用数组，用迭代完成DP
+        if(n == 0){
+            return 0;
+        }
+        if(n == 1){
+            return 1;
+        }
+        int a = 0;
+        int b = 1;
+        int sum = 0;
+        for(int i = 2; i < n+1; i++){
+            sum = (a + b) % 1000000007;
+            a = b;
+            b = sum;
+        }
+        return sum;
+    }
+}
+```
+
+##  总结&注意
+
+- 动态规划的特征：
+  - 无后效性：
+    - “未来与过去无关”，只需要值，不关心如何计算。如果给定某一阶段的状态，则在这一阶段以后过程的发展不受这阶段以前各段状态的影响。
+  - 最优子结构：
+    - 大问题的最优解可以由小问题的最优解推出，需要将大问题拆成几个小问题
+- 注意：
+  - 动态规划忌讳用数组记录数据，因为违背“无后效性”，需要用迭代的方式计算
+
+
+
+# 剑指 Offer 10-II. 青蛙跳台阶问题
+
+![image-20210925152157563](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210925152157563.png)
+
+## 思路&方法
+
+斐波那契数列的包装题
+
+### 【方法1：动态规划DP】
+
+![image-20210925152228016](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210925152228016.png)
+
+```java
+class Solution {
+    public int numWays(int n) {
+        //斐波那契数列的包装题
+        //思路：
+        //跳到n前有两种可能，跳一下or跳两下
+        //得出关系式：f(n) = f(n - 1) + f(n - 2)
+        if(n == 0){
+            return 1;
+        }
+        if(n == 1){
+            return 1;
+        }
+        int a = 1;
+        int b = 1;
+        int sum = 0;
+        for(int i = 2; i < n + 1; i++){
+            sum = (a + b) % 1000000007;
+            b = a;
+            a = sum;
+        }
+        return sum;
+    }
+}
+```
+
+## 总结&方法
+
+经典DP
 
