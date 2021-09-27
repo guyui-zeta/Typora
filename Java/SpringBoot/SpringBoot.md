@@ -1,5 +1,7 @@
 ---
 
+
+
 ---
 
 # 一、SpringBoot入门
@@ -1677,7 +1679,7 @@ public class WebMvcAutoConfiguration {
 ​		如果有些组件可以有多个（ViewResolver视图解析器）将用户配置的和自己默认的组合起来；
 
 ​	2）、在SpringBoot中会有非常多的xxxConfigurer帮助我们进行扩展配置
-​	3）、在SpringBoot中会有很多的xxxCustomizer帮助我们进行定制配置2）
+​	3）、在SpringBoot中会有很多的xxxCustomizer帮助我们进行定制配置
 
 ## 6.RestfulCRUD实验
 
@@ -2216,31 +2218,233 @@ spring.mvc.format.date=yyyy-MM-dd
 
 
 
+- **@RequestParam和@PathVariable的区别**
+
+  @RequestParam和@PathVariable这两者之间区别不大，主要是请求的URL不一样
+
+  用@RequestParam请求接口时,URL是:http://www.test.com/user/getUserById?userId=1
+
+  用@PathVariable请求接口时,URL是:http://www.test.com/user/getUserById/2
+
+  
+
+
+
 ### 2）如何定制错误响应：
 
-- 1.如何定制错误的页面
+##### 1.如何定制错误的页面
 
-  - 有模板引擎的情况下：error/状态码【将错误页面命名为 错误状态码.html 放在模板引擎文件夹的error文件夹下】发生此状态码的错误就会来到该页面
+- 1）有模板引擎的情况下：error/状态码【将错误页面命名为 错误状态码.html 放在模板引擎文件夹的error文件夹下】发生此状态码的错误就会来到该页面
 
-    我们可以使用4xx和5xx作为错误页面的文件名来匹配这种类型的所有错误，精确优先
+  我们可以使用4xx和5xx作为错误页面的文件名来匹配这种类型的所有错误，精确优先
 
-  ![image-20210925105248476](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925105248476.png)
+![image-20210925105248476](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210925105248476.png)
 
-  - 页面能获取的信息：
+- 页面能获取的信息：
 
-    ​	timestamp：时间戳
+  ​	timestamp：时间戳
 
-    ​	status：状态码
+  ​	status：状态码
 
-    ​	error：错误提示
+  ​	error：错误提示
 
-    ​	exception：异常对象
+  ​	exception：异常对象
 
-    ​	message：异常消息
+  ​	message：异常消息
 
-  ​		    errors：JSR303数据校验的错误
+​		    errors：JSR303数据校验的错误
 
-  - 没有模板引擎的情况下：在静态资源文件夹下找
+spring2.x需要在配置文件中开启自定义异常
 
-- 2.如何定制错误的json数据
+```properties
+#开启自定义异常
+server.error.include-exception=true
+server.error.include-message=always
+```
+
+
+
+- 2）没有模板引擎的情况下：在静态资源文件夹下找
+- 3）以上都没有错误页面，就是默认来到SpringBoot默认的错误提示页面
+
+##### 2.如何定制错误的json数据
+
+- 1）自定义异常处理&返回定制json数据
+
+通过@ControllerAdvice增强实现全局异常处理【实现HandlerExceptionResolver接口】
+
+```java
+/**
+ * 处理异常【全局异常处理】
+ * CRM中通过实现HandlerExceptionResolver接口
+ */
+@ControllerAdvice//增强Controller，可以实现全局异常处理、全局数据绑定、全局数据预处理
+public class MyExceptionHandler {
+
+    @ResponseBody//返回异常信息
+    @ExceptionHandler(UserNotExistException.class)//处理的异常类
+    public Map<String,Object> handleException(Exception e){
+        Map<String,Object> map = new HashMap<>();
+        map.put("code","user.notexist");
+        map.put("message",e.getMessage());
+        return map;
+    }
+}
+//没有自适应效果：【浏览器和客户端返回的都是json数据】
+```
+
+- 2）转发到/error进行自适应响应效果处理
+
+```java
+ //2.自适应效果
+    @ExceptionHandler(UserNotExistException.class)//处理的异常类
+    public String handleException(Exception e, HttpServletRequest request){
+        Map<String,Object> map = new HashMap<>();
+        //传入我们自己的错误状态码 4xx 5xx
+        request.setAttribute("javax.servlet.error.status_code",400);
+        map.put("code","user.notexist");
+        map.put("message",e.getMessage());
+        //转发到/error请求
+        return "forward:/error";
+    }
+```
+
+- 3)将我们的定制数据携带出去
+
+  出现错误以后，会来到/error请求，会被BasicErrorController处理，响应出去可以获取的数据是由getErrorAttributes得到的（是AbstractErrorController（ErrorController）规定的方法）；
+  1、完全来编写一个ErrorController的实现类【或者是编写AbstractErrorController的子类】，放在容器中；
+  2、页面上能用的数据，或者是json返回能用的数据都是通过errorAttributes.getErrorAttributes得到；
+  容器中DefaultErrorAttributes.getErrorAttributes()；默认进行数据处理的；自定义ErrorAttributes
+
+
+
+## 8.配置嵌入式Servlet容器
+
+SpringBoot默认是使用Tomcat作为嵌入式的Servlet容器
+
+![image-20210926100723981](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210926100723981.png)
+
+问题：
+
+### 1）.如何定制和修改Servlet容器的相关配置
+
+- 1.修改和server有关的配置
+
+```java
+server.port=8081
+server.context‐path=/crud
+server.tomcat.uri‐encoding=UTF‐8
+    
+//通用的Servlet容器设置
+server.xxx
+//Tomcat的设置
+server.tomcat.xxx
+```
+
+- 编写一个WebServerFactorCustomizer嵌入式的Servlet容器的定制器；来修改Servlet容器的配置
+
+### 2）.注册Servlet三大组件【Servlet、Filter、Listener】
+
+由于SpringBoot是默认以jar包的方式气动嵌入式的servlet容器来气动SpringBoot的web应用，没有web.xml文件
+
+- 注册三大组件用以下方式
+
+  - ServletRegistrationBean
+
+  ```java
+  //注册三大组件
+  @Bean
+  public ServletRegistrationBean myServlet(){
+  ServletRegistrationBean registrationBean = new ServletRegistrationBean(new
+  MyServlet(),"/myServlet");
+  return registrationBean;
+  }
+  ```
+
+  - FilterRegistrationBean
+
+  ```java
+  @Bean
+  public FilterRegistrationBean myFilter(){
+  FilterRegistrationBean registrationBean = new FilterRegistrationBean();
+  registrationBean.setFilter(new MyFilter());
+  registrationBean.setUrlPatterns(Arrays.asList("/hello","/myServlet"));
+  return registrationBean;
+  }
+  ```
+
+  - ServletListenerRegistrationBean
+
+  ```java
+  @Bean
+  public ServletListenerRegistrationBean myListener(){
+  ServletListenerRegistrationBean<MyListener> registrationBean = new
+  ServletListenerRegistrationBean<>(new MyListener());
+  return registrationBean;
+  }
+  ```
+
+  
+
+### 3) .替换为其他嵌入式Servlet容器
+
+![image-20210926104502277](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210926104502277.png)
+
+默认支持：
+
+​	Tomcat、Jetty（长连接）、Undertow（不支持jsp）
+
+### 4）.嵌入式Servlet容器自动配置原理
+
+### 5）.嵌入式Servlet容器启动原理
+
+
+
+# 五、Docker
+
+## 1.简介
+
+Docker是一个开源的应用容器引擎，是一个轻量级容器技术
+
+Docker支持将软甲编译成一个镜像；然后在镜像中各种软件做好配置，将镜像发布出去，其他使用者可以直接使用这个镜像
+
+运行中的这个镜像称为容器，容器启动是非常快的。
+
+【作用】
+
+在一个服务器中安装好mysql，打包成镜像，在别的服务器中，直接运行打包好的镜像就可以了——【运行起来的镜像==容器】
+
+![image-20210926152615885](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210926152615885.png)
+
+类似于windows镜像系统【ghost】，可以把一些应用也作为镜像安装进去
+
+![image-20210926152629672](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210926152629672.png)
+
+
+
+
+
+## 2.核心概念
+
+docker主机(Host)：安装了Docker程序的机器（Docker直接安装在操作系统之上）；
+docker客户端(Client)：连接docker主机进行操作；
+docker仓库(Registry)：用来保存各种打包好的软件镜像；
+docker镜像(Images)：软件打包好的镜像；放在docker仓库中；
+docker容器(Container)：镜像启动后的实例称为一个容器；容器是独立运行的一个或一组应用
+
+
+
+
+
+
+
+![image-20210926153830132](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210926153830132.png)
+
+使用Docker的步骤：
+1）、安装Docker
+2）、去Docker仓库找到这个软件对应的镜像；
+3）、使用Docker运行这个镜像，这个镜像就会生成一个Docker容器；
+4）、对容器的启动停止就是对软件的启动停止；
+
+## 3.安装Docker
 

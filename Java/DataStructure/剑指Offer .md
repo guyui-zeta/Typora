@@ -1402,3 +1402,53 @@ class Solution {
 
 经典DP
 
+
+
+# 剑指 Offer 63. 股票的最大利润
+
+![image-20210927105941970](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20210927105941970.png)
+
+## 思路&方法
+
+利用动态规划实现，不断迭代最小买入价（min）和最大利润值（max_profile）来求得最大利润
+
+### 【方法1：动态规划】
+
+- 1.设置min，记录最小买入价格
+- 2.设置max_profile，记录最大收益值
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        //动态规划（DP）题：
+        //思路：
+        //1.设置min，记录最小买入值
+        //2.设置max_profile，记录最大收益值
+        if(prices == null || prices.length == 0){
+            return 0;
+        }
+        int min = prices[0];
+        int max_Profit = 0;
+        for(int i = 0; i < prices.length; i++){
+            if(prices[i] < min){
+                min = prices[i];
+            }
+            if(prices[i] - min > max_Profit){
+                max_Profit = prices[i] - min;
+            }
+        }
+        return max_Profit;
+    }
+}
+```
+
+## 总结&注意
+
+动态规划思想逐渐成熟
+
+# 九、动态规划（中等）
+
+# 剑指 Offer 42. 连续子数组的最大和
+
+
+
