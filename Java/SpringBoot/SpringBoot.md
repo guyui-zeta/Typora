@@ -2526,3 +2526,222 @@ https://docs.docker.com/engine/reference/commandline/docker/
 
 # 六、SpringBoot与数据访问
 
+对于数据访问层，无论是SQL还是NOSQL，SpringBoot默认采用整合SpringData的方式进行统一处理，添加大量自动配置，屏蔽了很多设置。引入了各种XXXTemplate，XXXRepository来简化我们对数据访问层的操作。
+
+## 1.JDBC
+
+- 引入依赖
+
+```xml
+		<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+```
+
+- yml配置
+
+```yaml
+spring:
+  datasource:
+    username: root
+    password: 9762
+    url: jdbc:mysql://192.168.184.1:3306/springboot_jdbc
+    driver-class-name: com.mysql.jdbc.Driver
+```
+
+- 效果：
+
+  ​	默认使用class com.zaxxer.hikari.HikariDataSource作为数据源【springboot2.x】
+
+  ​	数据源的相关配置都在DataSourceProperties里面
+
+- 自动配置原理：
+
+  org.springframework.boot.autoconfigure.jdbc
+
+  - 1.参考DataSourceConfiguration，根据配置创建数据源，默认使用Tomcat连接池；可以使用spring.datasource.type指定自定义的数据源类型
+  - 2.Springboot默认可以支持
+  
+  ```java
+  org.apache.tomcat.jdbc.pool.DataSource、HikariDataSource、BasicDataSource、
+  ```
+  
+  - 3.自定义数据源类型
+  
+  - 4、DataSourceInitializer：ApplicationListener；
+  
+    作用：
+    	1）、runSchemaScripts();运行建表语句；
+    	2）、runDataScripts();运行插入数据的sql语句；
+    	默认只需要将文件命名为：
+  
+  ```properties
+  schema‐*.sql、data‐*.sql
+  默认规则：schema.sql，schema‐all.sql；
+  可以使用
+  schema:
+  ‐ classpath:department.sql
+  指定位置
+  ```
+  
+  - 5、操作数据库：自动配置了JdbcTemplate操作数据库
+
+## 2.整合Druid数据源
+
+- 引入Durid数据源
+
+```xml
+<!--引入druid数据源-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.1.8</version>
+        </dependency>
+```
+
+- yaml配置
+
+```yaml
+
+spring:
+  datasource:
+    username: root
+    password: 9762
+    url: jdbc:mysql://192.168.184.1:3306/springboot_jdbc
+    driver-class-name: com.mysql.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+```
+
+
+
+![image-20210930083315817](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930083315817.png)
+
+通过配置类来创建数据源
+
+```java
+导入druid数据源
+@Configuration
+public class DruidConfig {
+@ConfigurationProperties(prefix = "spring.datasource")
+@Bean
+public DataSource druid(){
+return new DruidDataSource();
+}
+//配置Druid的监控
+//1、配置一个管理后台的Servlet
+//便于连接池的连接操作
+@Bean
+public ServletRegistrationBean statViewServlet(){
+	ServletRegistrationBean bean = new ServletRegistrationBean(new StatViewServlet(),
+	"/druid/*");
+    Map<String,String> initParams = new HashMap<>();
+    initParams.put("loginUsername","admin");
+    initParams.put("loginPassword","123456");
+    initParams.put("allow","");//默认就是允许所有访问
+    initParams.put("deny","192.168.15.21");
+    bean.setInitParameters(initParams);
+    return bean;
+}
+//2、配置一个web监控的filter
+@Bean
+public FilterRegistrationBean webStatFilter(){
+    FilterRegistrationBean bean = new FilterRegistrationBean();
+    bean.setFilter(new WebStatFilter());
+    Map<String,String> initParams = new HashMap<>();
+    initParams.put("exclusions","*.js,*.css,/druid/*");
+    bean.setInitParameters(initParams);
+    bean.setUrlPatterns(Arrays.asList("/*"));
+    return bean;
+}
+}
+```
+
+## 3.整合MyBatis
+
+- 引入依赖
+
+```xml
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis‐spring‐boot‐starter</artifactId>
+    <version>1.3.1</version>
+</dependency>
+```
+
+步骤：
+	1）、配置数据源相关属性（见上一节Druid）
+	2）、给数据库建表
+	3）、创建JavaBean
+
+```pro
+spring:
+  datasource:
+    #   数据源基本配置
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ssm_crud
+    type: com.alibaba.druid.pool.DruidDataSource
+    #   数据源其他配置
+    initialSize: 5
+    minIdle: 5
+    maxActive: 20
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙  
+    filters: stat,wall,log4j
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+    
+```
+
+#### 注解版
+
+![image-20210930091418963](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930091418963.png)
+
+#### 配置文件版
+
+```properties
+mybatis:
+	config‐location: classpath:mybatis/mybatis‐config.xml 指定全局配置文件的位置
+	mapper‐locations: classpath:mybatis/mapper/*.xml 指定sql映射文件的位置
+```
+
+更多使用参照
+http://www.mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/
+
+
+
+## 4.整合SpringData JPA
+
+- SpringData简介：
+  - SpringData项目的目的是为了简化构建基于Spring框架应用的数据访问技术，包括非关系数据库、Map-Reduce框架、云数据服务等等；另外也包含对关系数据库的访问支持
+
+- SpringData特点：
+
+  - SpringData为我们提供使用统一的API来对数据访问层进行操作；这主要是Spring Data Commons项目来实现的。Spring Data Commons让我们在使用关系型或者非关系型数据访问技术时都基于Spring提供的统一标准，标准包含了CRUD（创建、获取、更新、删除）、查询排序和分页的相关操作
+
+- 统一的Repository接口【通过实现接口来实现基础的CRUD操作】
+
+  ![image-20210930092105071](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930092105071.png)
+
+![image-20210930093010047](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930093010047.png)
+
+
+
+- JPA【java持久层API】
+
+  
+
