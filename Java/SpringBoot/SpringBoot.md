@@ -2726,22 +2726,303 @@ http://www.mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/
 
 ## 4.整合SpringData JPA
 
-- SpringData简介：
-  - SpringData项目的目的是为了简化构建基于Spring框架应用的数据访问技术，包括非关系数据库、Map-Reduce框架、云数据服务等等；另外也包含对关系数据库的访问支持
+#### 1）SpringData简介
 
+- SpringData简介：
+  
+  - SpringData项目的目的是为了简化构建基于Spring框架应用的数据访问技术，包括非关系数据库、Map-Reduce框架、云数据服务等等；另外也包含对关系数据库的访问支持
+  
 - SpringData特点：
 
   - SpringData为我们提供使用统一的API来对数据访问层进行操作；这主要是Spring Data Commons项目来实现的。Spring Data Commons让我们在使用关系型或者非关系型数据访问技术时都基于Spring提供的统一标准，标准包含了CRUD（创建、获取、更新、删除）、查询排序和分页的相关操作
 
 - 统一的Repository接口【通过实现接口来实现基础的CRUD操作】
 
+  - 作用：一些基础的CRUD操作，用JPA会非常方便
+  
   ![image-20210930092105071](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930092105071.png)
 
 ![image-20210930093010047](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20210930093010047.png)
 
+#### 2）整合SpringDataJPA
+
+- JPA【java持久层API】ORM（Object Relational Mapping）步骤：
+
+  - 1.编写一个实体类（bean）和数据表进行映射，并且配置好映射关系
+
+    ```java
+    //使用JPA注解配置映射关系
+    @Entity //告诉JPA这是一个实体类（和数据表映射的类）
+    @Table(name = "tbl_user") //@Table来指定和哪个数据表对应;如果省略默认表名就是user；
+    public class User {
+    @Id //这是一个主键
+    @GeneratedValue(strategy = GenerationType.IDENTITY)//自增主键
+    private Integer id;
+    @Column(name = "last_name",length = 50) //这是和数据表对应的一个列
+    private String lastName;
+    @Column //省略默认列名就是属性名
+    private String email;
+    ```
+
+  - 2.编写一个DAO接口来操作实体类对应的数据表
+
+    ```java
+    //继承JpaRepository来完成对数据库的操作
+    public interface UserRepository extends JpaRepository<User,Integer> {
+    }
+    ```
+
+  - 3.基本的配置JPA properties
+
+    ```properties
+    spring:
+        jpa:
+            hibernate:
+            	# 更新或者创建数据表结构[没有的时候会自动创建]
+                ddl‐auto: update
+                # 控制台显示SQL
+            show‐sql: true
+    ```
+
+  - 4.基础的CRUD
+
+    直接调用API即可，继承了的那个类都有CRUD方法
+
+    ![image-20211002192708706](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002192708706.png)
 
 
-- JPA【java持久层API】
+
+# 七、SpringBoot气动配置原理
+
+- 几个重要的事件回调机制
+
+
+
+
+
+- 启动流程：【调试源码方法：Step Into】
+
+  ![image-20211002193910609](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002193910609.png)
+
+  - 1.创建SpringApplication对象
+
+    ```java
+    initialize(sources);
+    private void initialize(Object[] sources) {
+        //保存主配置类
+        if (sources != null && sources.length > 0) {
+            this.sources.addAll(Arrays.asList(sources));
+        }
+        //判断当前是否一个web应用
+        this.webEnvironment = deduceWebEnvironment();
+        //从类路径下找到META‐INF/spring.factories配置的所有ApplicationContextInitializer；然后保存起
+        来
+        setInitializers((Collection) getSpringFactoriesInstances(
+        ApplicationContextInitializer.class));
+        //从类路径下找到ETA‐INF/spring.factories配置的所有ApplicationListener
+        setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+        //从多个配置类中找到有main方法的主配置类
+        this.mainApplicationClass = deduceMainApplicationClass();
+    }
+    ```
+
+    
+
+  - 2.运行run方法
+
+    ```java
+    public ConfigurableApplicationContext run(String... args) {
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start();
+        ConfigurableApplicationContext context = null;
+    FailureAnalyzers analyzers = null;
+    configureHeadlessProperty();
+        
+    //获取SpringApplicationRunListeners；从类路径下META‐INF/spring.factories
+    SpringApplicationRunListeners listeners = getRunListeners(args);
+    //回调所有的获取SpringApplicationRunListener.starting()方法
+    listeners.starting();
+    try {
+        //封装命令行参数
+        ApplicationArguments applicationArguments = new DefaultApplicationArguments(
+        args);
+        //准备环境
+        ConfigurableEnvironment environment = prepareEnvironment(listeners,
+        applicationArguments);
+        //创建环境完成后回调SpringApplicationRunListener.environmentPrepared()；表示环境准备完成
+        
+        Banner printedBanner = printBanner(environment);
+        //创建ApplicationContext；决定创建web的ioc还是普通的ioc
+        context = createApplicationContext();
+        analyzers = new FailureAnalyzers(context);
+        //准备上下文环境;将environment保存到ioc中；而且applyInitializers()；
+        //applyInitializers()：回调之前保存的所有的ApplicationContextInitializer的initialize方法
+        //回调所有的SpringApplicationRunListener的contextPrepared()；
+        //
+        prepareContext(context, environment, listeners, applicationArguments,
+        printedBanner);
+        //prepareContext运行完成以后回调所有的SpringApplicationRunListener的contextLoaded（）；
+        //s刷新容器；ioc容器初始化（如果是web应用还会创建嵌入式的Tomcat）；Spring注解版
+        //扫描，创建，加载所有组件的地方；（配置类，组件，自动配置）
+        refreshContext(context);
+        //从ioc容器中获取所有的ApplicationRunner和CommandLineRunner进行回调
+        //ApplicationRunner先回调，CommandLineRunner再回调
+        afterRefresh(context, applicationArguments);
+        //所有的SpringApplicationRunListener回调finished方法
+        listeners.finished(context, null);
+        stopWatch.stop();
+        if (this.logStartupInfo) {
+        new StartupInfoLogger(this.mainApplicationClass)
+        .logStarted(getApplicationLog(), stopWatch);
+    }
+    //整个SpringBoot应用启动完成以后返回启动的ioc容器；
+    	return context;
+    }
+    	catch (Throtwable ex) {
+    		handleRunFailure(context, listeners, analyzers, ex);
+    	throw new IllegalStateException(ex);
+    }
+    }
+    ```
 
   
+
+# 八、SpringBoot自定义starters
+
+【讲了如何配置starter的流程】
+
+- starter：
+
+  - 1.这个场景需要使用到的依赖是什么？
+  - 2.如何编写自动配置类
+
+  ```java
+  @Configuration //指定这个类是一个配置类
+  @ConditionalOnXXX //在指定条件成立的情况下自动配置类生效
+  @AutoConfigureAfter //指定自动配置类的顺序
+  @Bean //给容器中添加组件
+  
+  @ConfigurationPropertie结合相关xxxProperties类来绑定相关的配置
+  @EnableConfigurationProperties //让xxxProperties生效加入到容器中
+      
+  自动配置类要能加载
+  将需要启动就加载的自动配置类，配置在META‐INF/spring.factories
+      
+  org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration,\
+  org.springframework.boot.autoconfigure.aop.AopAutoConfiguration,\
+  ```
+
+  
+
+  - 3.模式
+    - 启动器只用来做依赖导入
+    - 专门来写一个自动配置模块
+    - 启动器依赖自动配置，别人只需要引入启动器（starter）
+
+![image-20211002204535430](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002204535430.png)
+
+
+
+
+
+- **步骤：****【重要！！！！！！！！！！！！！！！！！】**
+
+  【总结：自定义一个starter，会自动导入自己写的配置类，例如往容器中加入一些组件，组件中的属性会从HelloProperties中取出】
+
+  ![image-20211002205555956](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002205555956.png)
+
+  - **1）启动器模块**【只做依赖导入】
+
+  ```xml
+  <!‐‐启动器‐‐>
+  <dependencies>
+      <!‐‐引入自动配置模块‐‐>
+      <dependency>
+          <groupId>com.atguigu.starter</groupId>
+          <artifactId>atguigu‐spring‐boot‐starter‐autoconfigurer</artifactId>
+      <version>0.0.1‐SNAPSHOT</version>
+  </dependency>
+  </dependencies>
+  ```
+
+  
+
+  - **2）自动配置模块**
+
+  ```java
+  package com.atguigu.starter;
+  import org.springframework.boot.context.properties.ConfigurationProperties;
+  @ConfigurationProperties(prefix = "atguigu.hello")
+  ```
+
+  - **组件属性文件xxxProperties【能配置的属性都放在这】**
+
+  ```java
+  @ConfigurationProperties(prefix = "atguigu.hello")
+  public class HelloProperties {
+      private String prefix;
+      private String suffix;
+      public String getPrefix() {
+      	return prefix;
+      }
+      public void setPrefix(String prefix) {
+      	this.prefix = prefix;
+      }
+      public String getSuffix() {
+      	return suffix;
+      }
+      public void setSuffix(String suffix) {
+      	this.suffix = suffix;
+  }
+  }
+  ```
+
+  - **HelloService类**
+
+  ```java
+  package com.atguigu.starter;
+  public class HelloService {
+      HelloProperties helloProperties;
+      public HelloProperties getHelloProperties() {
+          return helloProperties;
+      }
+      public void setHelloProperties(HelloProperties helloProperties) {
+      	this.helloProperties = helloProperties;
+      }
+      public String sayHellAtguigu(String name){
+          //可配置的
+      	return helloProperties.getPrefix()+"‐" +name + helloProperties.getSuffix();
+      }
+  }
+  ```
+
+  - **自动配置类**
+
+  ```java
+  @Configuration
+  @ConditionalOnWebApplication //web应用才生效
+  @EnableConfigurationProperties(HelloProperties.class)//让属性文件生效
+  public class HelloServiceAutoConfiguration {
+      
+      @Autowired
+      HelloProperties helloProperties;
+      @Bean
+      public HelloService helloService(){
+          HelloService service = new HelloService();
+          service.setHelloProperties(helloProperties);
+          return service;
+      }
+  }
+  ```
+
+  - **在类路径下新建META-INF**
+
+    ![image-20211002210506601](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002210506601.png)
+
+    把自己的自动配置类名放进去
+
+    ![image-20211002210524812](D:/Typora/Typora_Note/Java/SpringBoot/SpringBoot.assets/image-20211002210524812.png)
+
+  - **将启动器和自动配置类install到maven仓库中**
 
