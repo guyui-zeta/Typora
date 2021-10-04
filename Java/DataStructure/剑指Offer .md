@@ -1450,5 +1450,95 @@ class Solution {
 
 # 剑指 Offer 42. 连续子数组的最大和
 
+![image-20211003225916421](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20211003225916421.png)
+
+## 思路&方法
+
+利用动态规划实现，首先找到动态规划转移方程，然后根据转移方程，一步步迭代子数组的最大值max_temp
+
+- 动态规划转移方程：
+  - f(i) = max{f(i - 1) + nums[i], nums[i]}
+  - f(i)代表以nums[i]结尾的最大子数组之和
+
+### 【方法1：动态规划】
+
+```java
+class Solution {
+    public int maxSubArray(int[] nums) {
+        //思路：利用动态规划实现
+        //动态规划转移方程：f(i)代表以nums[i]结尾的最大子数组之和
+        //f(i) = max{f(i - 1) + nums[i], nums[i]}//前一个最大和f(i - 1)加nums[i]，还是nums[i]单独一个大
+        //通过迭代max的方法不利用额外的空间来存储
+        int res = nums[0];//存储最终最大的值，需要不断迭代
+        int max_temp = nums[0];
+        for(int i = 1; i < nums.length; i++){
+            if(max_temp + nums[i] > nums[i]){
+                max_temp = max_temp + nums[i];
+            }else{
+                max_temp = nums[i];
+            }
+            if(res < max_temp){
+                res = max_temp;
+            }
+        }
+        return res;
+    }
+}
+```
 
 
+
+### 【方法2：分治没做】
+
+## 总结&注意
+
+1.动态规划题目，最重要的部分就是找到动态规划转移方程，首先要有一次遍历的思想，然后每次遍历到的f(i)能与题目要求贴合，即每次遍历时的f(i)都能代表该i下的解——**==动态规划的精髓==**【例如本题f(i)即代表：以nums[i]结尾的子数组中的最大值】
+
+
+
+# 剑指 Offer 47. 礼物的最大价值
+
+![image-20211003232420855](D:/Typora/Typora_Note/Java/DataStructure/%E5%89%91%E6%8C%87Offer%20.assets/image-20211003232420855.png)
+
+## 思路&方法
+
+和42题思路一致，一维的最大值变成了二维的最大值
+
+### 【方法1：动态规划（自己的思路）】
+
+```java
+class Solution {
+    public int maxValue(int[][] grid) {
+        //思路：同上一题
+        int res = 0;
+        int max_temp = 0;
+        int[][] temp = new int[grid.length][grid[0].length];
+        for(int i = 0; i < grid.length; i++){
+            for(int j = 0; j < grid[0].length; j++){
+                if(i - 1 >= 0 && j - 1 >=0){
+                    if(temp[i - 1][j] + grid[i][j] > temp[i][j - 1] + grid[i][j]){
+                        max_temp = temp[i - 1][j] + grid[i][j];
+                    }else{
+                        max_temp = temp[i][j - 1] + grid[i][j];
+                    }
+                }else if(i - 1 < 0 && j - 1 >= 0){
+                    max_temp = temp[i][j - 1] + grid[i][j];
+                }else if(j - 1 < 0 && i - 1 >= 0){
+                    max_temp = temp[i - 1][j] + grid[i][j];
+                }else{
+                    max_temp = grid[i][j];
+                }
+                temp[i][j] = max_temp;
+                res = max_temp;
+            }
+        }
+        return res;
+    }
+}
+```
+
+### 【方法2：动态规划（空间上的优化）】
+
+
+
+## 总结&注意
