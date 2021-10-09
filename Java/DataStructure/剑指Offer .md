@@ -1356,7 +1356,7 @@ class Solution {
   - 最优子结构：
     - 大问题的最优解可以由小问题的最优解推出，需要将大问题拆成几个小问题
 - 注意：
-  - 动态规划忌讳用数组记录数据，因为违背“无后效性”，需要用迭代的方式计算
+  - 动态规划忌讳用数组记录数据，因为违背“无后效性”，需要用迭代的方式计算——【**==滚动数组来优化空间==**】
 
 
 
@@ -1446,6 +1446,8 @@ class Solution {
 
 动态规划思想逐渐成熟
 
+# -------------------------------------------
+
 # 九、动态规划（中等）
 
 # 剑指 Offer 42. 连续子数组的最大和
@@ -1506,6 +1508,10 @@ class Solution {
 
 ### 【方法1：动态规划（自己的思路）】
 
+- 动态规划转移方程：
+  - f(i,j) = max{f(i-1,j), f(i,j-1)} + f(i,j)
+- 由于需要记录左和上两个值，所以用了一个二维数组来记录【可以优化】
+
 ```java
 class Solution {
     public int maxValue(int[][] grid) {
@@ -1539,6 +1545,551 @@ class Solution {
 
 ### 【方法2：动态规划（空间上的优化）】
 
+- 可以用原二维数组代替额外使用的空间
 
+```java
+class Solution {
+    public int maxValue(int[][] grid) {
+        //思路：同上一题
+        int res = 0;
+        int max_temp = 0;
+        for(int i = 0; i < grid.length; i++){
+            for(int j = 0; j < grid[0].length; j++){
+                if(i - 1 >= 0 && j - 1 >=0){
+                    if(grid[i - 1][j] + grid[i][j] > grid[i][j - 1] + grid[i][j]){
+                        max_temp = grid[i - 1][j] + grid[i][j];
+                    }else{
+                        max_temp = grid[i][j - 1] + grid[i][j];
+                    }
+                }else if(i - 1 < 0 && j - 1 >= 0){
+                    max_temp = grid[i][j - 1] + grid[i][j];
+                }else if(j - 1 < 0 && i - 1 >= 0){
+                    max_temp = grid[i - 1][j] + grid[i][j];
+                }else{
+                    max_temp = grid[i][j];
+                }
+                grid[i][j] = max_temp;
+                res = max_temp;
+            }
+        }
+        return res;
+    }
+}
+```
 
 ## 总结&注意
+
+经典的动态规划题目的二维版本
+
+- **==动态规划的精髓：==**
+  - 状态：f(i)，f(i)能诠释动态规划的最终目的
+  - 转移方程：表述递推关系
+
+
+
+# -------------------------------------------
+
+# 十、动态规划（中等）
+
+# 剑指 Offer 46. 把数字翻译成字符串
+
+## 思路&方法
+
+动态规划
+
+### 【方法1：动态规划（自己的纰漏版本）】
+
+- 没有考虑到两个以上且间隔的情况，需要排列组合
+
+```java
+class Solution {
+    public int translateNum(int num) {
+        //动态规划
+        //状态转移方程：
+        //f(i) = f(i - 1) + {if(num[i] > 5 && num[i - 1] == 1) || if(num[i] < 5 && 1 <= num[i - 1] <=2)}=1
+        //但由于int只能从个位数往左取值，所以根据实际情况需要更改
+        int res = 1;
+        int right = num % 10;
+        int left = num % 10;
+        num /= 10;
+        while(num > 0){
+            left = num % 10;//取出最右位数字，即个位
+            if(right > 5 && left == 1){
+                res++;
+            }else if(right <= 5 && (left >= 1 && left <=2)){
+                res++;
+            }
+            right = left;
+            num /= 10;
+        }
+        return res;
+
+    }
+}
+```
+
+
+
+### 【方法2：动态规划+滚动数组】
+
+- 类似于青蛙跳台阶题
+  - dp[i] = dp[i - 1] + dp[i - 2]【如果i-1和i能满足10-25的话】
+  - dp[i - 1]：第i位单独翻译，所以dp[i - 1]×1
+  - dp[i - 2]：第i位和第i-1位一起翻译，所以dp[i - 2]×1
+- 只涉及到前两项有关，所以运用滚动数组实现空间优化
+
+![image-20211005084426574](剑指Offer .assets/image-20211005084426574.png)
+
+```java
+class Solution {
+    public int translateNum(int num) {
+        //动态规划+滚动数组
+        //状态转移方程：
+        //dp[i] = dp[i - 1]×1 + dp[i - 2]×1【第i、i-1两位满足翻译条件】
+        int dp_i = 1;
+        int dp_i1 = 0;
+        int dp_i2 = 0;
+        String nums = String.valueOf(num);
+        for(int i = 0; i < nums.length(); i++){ 
+            //更新dp[i - 1]和dp[i - 2]
+            dp_i2 = dp_i1;
+            dp_i1 = dp_i;
+            //更新dp[i]
+            dp_i = dp_i1;
+            //避免i=0溢出
+            if(i == 0){
+                continue;
+            }
+            //substring左闭右开！！！！
+            String sub = nums.substring(i - 1, i + 1);
+            if(sub.compareTo("10") >= 0 && sub.compareTo("25") <= 0){
+                dp_i += dp_i2;
+            }
+        }
+        return dp_i;
+    }
+}
+```
+
+## 总结&注意
+
+- 1.substring[i-1,i+1]：是左闭右开的！！
+- 2.动态规划涉及到参数的迭代，一般用滚动数组来实现空间上的优化
+
+
+
+# 剑指 Offer 48. 最长不含重复字符的子字符串
+
+![image-20211005095658795](剑指Offer .assets/image-20211005095658795.png)
+
+## 思路&方法
+
+- 1.动态规划
+  - 一般涉及到最大值的迭代的，都能用动态规划实现
+- 2.滑动窗口
+  - 补充思路
+
+### 【方法1：动态规划 + 哈希表】
+
+- 转移方程思路：
+  - 如果与s[j]相同的元素s[i]不存在，或者在dp[j - 1]的范围之外，则dp[j] = dp[j - 1] + 1
+  - 如果与s[j] 相同的元素s[i]存在，且i在dp[j - 1]的范围之内即（dp[j - 1] >= j - i ），则dp[j] = j - i;
+- 剩余的问题：如何得到i
+  - HashMap：利用哈希表来记录每一个元素最后出现的下标，即i
+- 复习HashMap一个重要的API：
+  - map.getOrDefalut(element,value);
+  - 如果找到了为element的key，就返回对应的value值，否则范围默认的value
+- 时间复杂度：O(n)用于动态规划的一次遍历
+- 空间复杂度：O(128) = O(1)，因为字符的ASCII范围是0-127，所以Map最多用128的空间，所以为O(1)
+
+```java
+class Solution {
+    public int lengthOfLongestSubstring(String s) {
+        //动态规划
+        //转移方程：
+        //dp[j] = ①dp[j - 1] + 1, dp[j - 1] < j - i; ②j - i, dp[j - 1] >= j - i
+        //其中i为与s[j]相同的最近的下标
+        //Q：如何获得i？A：用哈希表来记录每个元素的最后一次出现的下标
+        Map<Character, Integer> map = new HashMap<>();
+        int temp = 0;
+        int res = 0;
+        for(int j = 0; j < s.length(); j++){
+            //取出最后一个值i
+            int i = map.getOrDefault(s.charAt(j), -1);//如果找到了s[j]，就返回s[j]最后一次常出现的下标，否则返回-1
+            //更新map的值
+            map.put(s.charAt(j),j);
+            temp = (temp < j - i) ? (temp + 1) : (j - i);
+            if(temp > res){
+                res = temp;
+            }
+        }
+        return res;
+    }
+}
+```
+
+### 【方法2：双指针（滑动窗口） + 哈希表】
+
+- 利用双指针left和right来维护滑动窗口
+  - 如果map中存在，则更新left
+- 利用哈希表来记录最后一个下标
+
+```java
+class Solution {
+    public int lengthOfLongestSubstring(String s) {
+        //滑动窗口+哈希表
+        //通过left和right维护滑动窗口，并用哈希表记录最后一个下标
+        //right维护的窗口依然是以right结尾的最长不重复字符串
+        
+        Map<Character,Integer> map = new HashMap<>();
+        int left = 0;
+        int max = 0;
+        for(int right = 0; right < s.length(); right++){
+            if(map.containsKey(s.charAt(right))){
+                //如果map中存在s[right]，则更新left
+                left = Math.max(left, map.get(s.charAt(right)) + 1);
+                //为了应对完全没有重复的例子，所以在这里和结果那都+1
+            }
+            map.put(s.charAt(right), right);
+            max = Math.max(max, right - left + 1);
+        }
+        return max;
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+# -------------------------------------------
+
+# 十一、双指针（简单）
+
+# 剑指 Offer 18. 删除链表的节点
+
+![image-20211007220901595](剑指Offer .assets/image-20211007220901595.png)
+
+## 思路&方法
+
+遇到删除链表节点或者找某个节点的题目，首先想到双节点
+
+### 【方法1：双指针】
+
+- 快慢双指针，一前一后来遍历链表
+
+```java
+class Solution {
+    public ListNode deleteNode(ListNode head, int val) {
+        //双指针
+        //思路：
+        //快慢指针fast、slow分别遍历前后
+        ListNode temp = head;
+        ListNode slow = temp;
+        ListNode fast = temp.next;
+        //删除节点是头节点情况
+        if(temp.val == val){
+            return temp.next;
+        }
+        while(fast != null){
+            if(fast.val == val){
+                slow.next = fast.next;
+                break;
+            }
+            slow = slow.next;
+            fast = fast.next;
+        }
+        return temp;
+    }
+}
+```
+
+
+
+# 总结&注意
+
+常规的快慢双指针题目
+
+
+
+# 剑指 Offer 22. 链表中倒数第k个节点
+
+![image-20211007221752036](剑指Offer .assets/image-20211007221752036.png)
+
+## 思路&方法
+
+1.快慢双指针法，间隔k
+
+2.常规递归方法
+
+### 【方法1：快慢双指针】
+
+- 定义快慢双指针，fast为head的后k个节点
+- 遍历直到fast == null，此时slow就是倒数第k个节点
+
+```java
+class Solution {
+    public ListNode getKthFromEnd(ListNode head, int k) {
+        //1.双指针法、2.递归法
+        //思路：
+        //定义快慢双指针，fast为head的后k个节点
+        //遍历直到fast==null，此时slow就是倒数第k个节点
+        ListNode slow = head;
+        ListNode fast = head;
+        for(int i = 0; i < k; i++){
+            fast = fast.next;
+        }
+        while(fast != null){
+            slow = slow.next;
+            fast = fast.next;
+        }
+        return slow;
+    }
+}
+```
+
+### 【方法2：递归方法】
+
+- 先堆栈，再计数，后返回倒数第k个数
+
+```java
+class Solution {
+    int count = 0;
+    public ListNode getKthFromEnd(ListNode head, int k) {
+        //1.双指针法、2.递归法
+        //思路：递归法
+        //递归：往后遍历节点
+        //终止条件：节点为null ，计数=k时 
+        //特殊情况
+        //终止条件
+        if(head == null){
+            return head;
+        }
+        ListNode res = getKthFromEnd(head.next,k);
+        count++;
+        if(count == k){
+            return head; 
+        }
+        return res;
+    }
+}
+```
+
+# 总结&注意
+
+还是双指针比较好用
+
+
+
+# -------------------------------------------
+
+# 十二、双指针（简单）
+
+# 剑指 Offer 25. 合并两个排序的链表
+
+![image-20211008232808291](剑指Offer .assets/image-20211008232808291.png)
+
+## 思路&方法
+
+双指针
+
+### 【方法1：双指针（迭代）】
+
+- 用一个新的链表节点存储结果，然后用双指针分别遍历两个链表，依次进入新链表
+- 遍历完后，把剩余的链表节点加入进去
+- 问题：没用哑结点，会导致新链表的第一个节点无法确定
+
+```java
+class Solution {
+    public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+        //双指针
+        //思路：
+        //用一个新的链表节点存储结果
+        //双指针分别遍历两个链表，依次入链表
+        if(l1 == null){
+            return l2;
+        }
+        if(l2 == null){
+            return l1;
+        }
+        //没有用哑结点就会这样
+        ListNode res = null;
+        if(l1.val < l2.val){
+            res = new ListNode(l1.val);
+            l1 = l1.next;
+        }else{
+            res = new ListNode(l2.val);
+            l2 = l2.next;
+        }
+        
+        ListNode temp = res;
+        while(l1 != null && l2 != null){
+            if(l1.val < l2.val){
+                temp.next = new ListNode(l1.val);
+                l1 = l1.next;
+            }else{
+                temp.next = new ListNode(l2.val);
+                l2 = l2.next;
+            }
+            temp = temp.next;
+        }
+        if(l1 != null){
+            temp.next = l1;
+        }
+        if(l2 != null){
+            temp.next = l2;
+        }
+        return res;
+
+
+    }
+}
+```
+
+
+
+### 【方法1：双指针（迭代）引入哑结点】
+
+- 哑结点：
+  - 放在第一个存放数据节点之前、头节点之后的节点。
+  - 作用：可以用在一些需要一个前驱节点的场合【就是再加一个头指针的意思】
+
+```java
+class Solution {
+    public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+        //双指针（+哑结点）
+        //思路：
+        //用一个新的链表节点存储结果
+        //双指针分别遍历两个链表，依次入链表
+        if(l1 == null){
+            return l2;
+        }
+        if(l2 == null){
+            return l1;
+        }
+        //用了哑结点，方便很多
+        ListNode res = new ListNode(-1);
+
+        ListNode temp = res;
+        while(l1 != null && l2 != null){
+            if(l1.val < l2.val){
+                temp.next = new ListNode(l1.val);
+                l1 = l1.next;
+            }else{
+                temp.next = new ListNode(l2.val);
+                l2 = l2.next;
+            }
+            temp = temp.next;
+        }
+        if(l1 != null){
+            temp.next = l1;
+        }
+        if(l2 != null){
+            temp.next = l2;
+        }
+        return res.next;
+    }
+}
+```
+
+## 总结&思路
+
+字节二面秃头出的题目
+
+
+
+# 剑指 Offer 52. 两个链表的第一个公共节点
+
+![image-20211008232841475](剑指Offer .assets/image-20211008232841475.png)
+
+## 思路&方法
+
+- 找重复的节点引用：hashset
+- 双指针？【浪漫相遇】
+
+### 【方法1：hashSet】
+
+- 通过set存储节点引用（注意不是val）
+- 通过一次遍历找到第一个公共节点
+- 时间复杂度：o（n）
+- 空间复杂度：o（n）
+
+```java
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+        //haset找出重复的第一个公共节点（存的是节点引用，而不是val）
+        ListNode tempA = headA;
+        ListNode tempB = headB;
+        Set<ListNode> set = new HashSet<>();
+        while(tempA != null){
+            set.add(tempA);
+            tempA = tempA.next;
+        }
+        while(tempB != null){
+            if(set.contains(tempB)){
+                return tempB;
+            }
+            tempB = tempB.next;
+        }
+        return null;
+    }
+}
+```
+
+### 【方法2：双指针：浪漫相遇】
+
+- 你变成我，走过我走过的路。
+  我变成你，走过你走过的路。
+  然后我们便相遇了.
+- 人话：
+  - 两个节点数总和一样，一快一慢（长短不同）总会套圈，相同速度，第一圈就会相遇
+
+![image-20211009091947965](剑指Offer .assets/image-20211009091947965.png)
+
+```java
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+        //双指针：浪漫相遇
+        if(headA == null && headB == null){
+            return null;
+        }
+        ListNode pA = headA;
+        ListNode pB = headB;
+        while(pA != pB){
+            pA = (pA == null) ? headB : pA.next;
+            pB = (pB == null) ? headA : pB.next;
+        }
+        return pA;
+    }
+}
+```
+
+## 总结&思路
+
+- 常规思路：利用hashset来存储节点的引用，从而找出第一公共节点
+- 骚操作：双指针浪漫相遇
+
+# -------------------------------------------
+
+# 十三、双指针（简单）
+
+# 剑指 Offer 21.  调整数组顺序使奇数位于偶数前面
+
+![image-20211009092707715](剑指Offer .assets/image-20211009092707715.png)
+
+
+
+# 剑指 Offer 57. 和为s的两个数字
+
+
+
+
+
+# 剑指 Offer 58-I. 翻转单词顺序 
+
+
+
