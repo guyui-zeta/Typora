@@ -2081,6 +2081,46 @@ public class Solution {
 
 ![image-20211009092707715](剑指Offer .assets/image-20211009092707715.png)
 
+## 思路&方法
+
+- 双指针：类快排方法
+
+### 【方法1：双指针】
+
+- 1.头尾双指针，分别往中间遍历
+- 2.找出左边第一个偶数位，找出右边第一个奇数位
+- 3.交换两位 
+
+```java
+class Solution {
+    public int[] exchange(int[] nums) {
+        //双指针法
+        //思路：
+        //1.用两个指针，分别从头尾开始往中间遍历
+        //2.找到左边第一个偶数位，找到右边第一个奇数位，并进行互换
+        //3.直到左右相等
+        int left = 0;
+        int right = nums.length - 1;
+        while(left < right){
+            while(nums[right] % 2 == 0 && left < right){
+                //奇数过
+                right--;
+            }
+            while(nums[left] % 2 == 1 && left < right){
+                //偶数过
+                left++;
+            }
+            int temp = nums[left];
+            nums[left] = nums[right];
+            nums[right] = temp;
+        }
+        return nums;
+    }
+}
+```
+
+## 总结&思路
+
 
 
 # 剑指 Offer 57. 和为s的两个数字
