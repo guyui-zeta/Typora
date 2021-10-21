@@ -1,4 +1,4 @@
-# 一、栈与队列（简单）
+一、栈与队列（简单）
 
 # 剑指 Offer 09. 用两个栈实现队列
 
@@ -2121,15 +2121,300 @@ class Solution {
 
 ## 总结&思路
 
-
+- 类似于快排的做法
 
 # 剑指 Offer 57. 和为s的两个数字
 
+![image-20211018222951275](剑指Offer .assets/image-20211018222951275.png)
 
+## 思路&方法
 
+- 双指针，快排的思想还是很常用的！
 
+### 【方法1：双指针】
+
+- 1.头尾双指针，往中间遍历数组
+- 2.如果nums[left] == target - nums[right]，则返回两数【用减法，为了防止相加溢出】
+- 3.如果target - nums[right] > nums[left]，则left++
+- 4.如果target - nums[left] < nums[right]，则right--
+
+```java
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        //双指针
+        //思路：
+        //1.先遍历一次数组，找到比target小的最后一个下标==多此一举
+        //2.头尾开始往中间遍历：
+        //3.如果left + right == target，则返回left
+        //4.如果target - right > left，则left++
+        //5.如果target - left < right，则right--
+        int left = 0;
+        int right = nums.length - 1;
+        int[] res = new int[2];
+       
+        while(left < right){
+            if(nums[left] + nums[right] == target){
+                res[0] = nums[left];
+                res[1] = nums[right];
+                break;
+            }
+            if(target - nums[right] > nums[left]){
+                left++;
+            }
+            if(target - nums[left] < nums[right]){
+                right--;
+            }
+        }
+        return res;   
+    }
+}
+```
+
+## 总结&思路
+
+- 双指针的天花板应该就是快排的思想了
 
 # 剑指 Offer 58-I. 翻转单词顺序 
 
+![image-20211019214655070](剑指Offer .assets/image-20211019214655070.png)
+
+## 思路&方法
+
+- 双指针
+
+### 【方法1：双指针】
+
+- 思路：
+  - 1.设置两个末位指针，作为扫描单次的滑动窗口左右下标，左指针去找到前面最近的一个空格
+  - 2.找到下标后，通过substring的方式append到新的StringBuilder中去
+  - 3.更新两个指针都为左指针的下标【去掉重复的空格】
+  - 4.重复上述操作，直到左指针==0
+- 时间复杂度：o(n)
+- 空间复杂度：o(n)
+
+```java
+class Solution {
+    public String reverseWords(String s) {
+        //双指针
+        //思路：
+        //1.设置两个末位指针，一个作为尾，一个作为头，去找到前面最近的一个空格
+        //2.找到这两个下标，然后通过subString的方式append到新的StringBuilder中去
+        //3.更新两个指针都为头指针下标【要找到下一个非空位】，重复上述操作，直到头尾下标==0
+        int end = s.length() - 1;
+        
+        StringBuilder sb = new StringBuilder();
+        //去尾的空格
+        while(end > 0 && s.charAt(end) == ' '){
+            end--;
+        }
+        int sentinel = end;
+        while(sentinel >= 0){
+            while(sentinel >= 0 && s.charAt(sentinel) != ' '){
+                sentinel--;
+            }
+            //找到了最近的一个空格
+            sb.append(s.substring(sentinel + 1, end + 1));
+            while(sentinel >= 0 && s.charAt(sentinel) == ' '){
+                sentinel--;
+            }
+            //找到最近一个不是空格的字符
+            end = sentinel;
+            //去头的空格
+            if(end != -1){
+                sb.append(" ");
+            }
+        }
+
+        return sb.toString();
+    }
+}
+```
+
+## 总结&注意
+
+- 总结：
+  - 双指针还可以作为滑动窗口，来实现字符串的一些扫描操作
+- 注意：
+  - 1.end > 0 && s.charAt(end) == ' '的作用：前面是为了短路后面的判断，防止index=-1而向下溢出
+  - 2.字符串.substring：左闭右开
+
+# -------------------------------------------
+
+# 十四、搜索与回溯算法（中等）
+
+# 剑指 Offer 34. 二叉树中和为某一值的路径
+
+![image-20211020230106827](剑指Offer .assets/image-20211020230106827.png)
+
+# -------------------------------------------
+
+# 十五、搜索与回溯算法（中等）
+
+# 剑指 Offer 34. 二叉树中和为某一值的路径
+
+![image-20211019215958594](剑指Offer .assets/image-20211019215958594.png)
+
+# 思路&方法
 
 
+
+## 【方法1：回溯法（先序遍历=DFS）】
+
+- 利用先序遍历的方法，先实现遍历**==【所有的树的题目，要先搭好遍历的框架：先序 or 中序 or DFS or HFS】==**
+
+- 先序遍历的框架 
+
+```java
+class Solution {
+    LinkedList<List<Integer>> res = new LinkedList<>();
+    LinkedList<Integer> path = new LinkedList<>(); 
+
+    public List<List<Integer>> pathSum(TreeNode root, int target) {
+        recur(root,target);
+        return res;
+    }
+    void recur(TreeNode root, int target){
+        if(root == null){
+            return ;
+        }
+        //先序遍历的操作
+        xianxuFun(root);
+        recur(root.left, target);
+        recur(root.right, target);
+    }
+}
+```
+
+- 在框架上实现路径的记录
+  - 先序操作：
+    - 每次在path路径上加入该节点
+    - 更新target，减去该节点的值
+  - 终止条件：
+    - 当遍历到叶子节点时&&target==0，此时将path复制快照，并且加入到res中
+  - 左右堆栈
+  - 删除该节点：
+    - 在该节点向上回溯时，要从path中删除，为了其他分支能用到这个path
+
+```java
+class Solution {
+    LinkedList<List<Integer>> res = new LinkedList<>();
+    LinkedList<Integer> path = new LinkedList<>(); 
+
+    public List<List<Integer>> pathSum(TreeNode root, int target) {
+        recur(root,target);
+        return res;
+    }
+    void recur(TreeNode root, int target){
+        if(root == null){
+            return ;
+        }
+        //先序遍历，先加入到path中
+        path.add(root.val);
+        target -= root.val;
+        if(target == 0 && root.left == null && root.right == null){
+            //每有一个叶子节点符合条件，就拷贝这个path，防止后面add和pop破坏正确的path
+            //复制一个快照来保存正确的path
+            res.add(new LinkedList(path));
+        }
+        recur(root.left, target);
+        recur(root.right, target);
+        //为了重复利用每一条path，回溯前需要删除该节点
+        //例如：7用完得删掉，才能加2
+        path.removeLast();
+    }
+}
+```
+
+
+
+- 自己的思路，思路是正确的的，但还不够完善
+
+```java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    List<List<Integer>> res = new ArrayList<>();
+    List<Integer> element = null;
+
+    public List<List<Integer>> pathSum(TreeNode root, int target) {
+        //返回空的树
+        if(root == null){
+            return res;
+        }
+        if(root.left == null && root.right == null && root.val == target){
+            element = new ArrayList<>();
+            element.add(root.val);
+            res.add(element);
+            return res;
+        }
+        if(root.left == null && root.right == null && root.val != target){
+            return res;
+        }
+        if(root.left != null){
+            ispathSum(root.left,target - root.val);
+        }
+        if(root.right != null){
+            ispathSum(root.right,target - root.val); 
+        }
+        
+        for(List<Integer> list : res){
+            list.add(root.val);
+            Collections.reverse(list);
+        }
+        
+        return res;
+
+
+    }
+    int isleft = 0;
+    int isright = 0;
+    public int ispathSum(TreeNode root, int target){
+        if(root.left == null && root.right == null && root.val == target){
+            //遍历到叶节点，并且叶节点等于相减后最后的target
+            element = new ArrayList<>();
+            element.add(root.val);
+            res.add(element);
+            return 1;
+        }
+        if(root.left == null && root.right == null && root.val != target){
+            //不是target路径
+            return 0;
+        }
+        if(root.left != null){
+            isleft = ispathSum(root.left,target - root.val);
+        }
+        if(root.right != null){
+            isright = ispathSum(root.right,target - root.val);    
+        }
+        
+        if(isleft == 1 || isright == 1){
+            element.add(root.val);
+            return 1;
+        }
+        return 0;
+    }
+}
+```
+
+## 总结&注意
+
+- 总结：
+  - 1.涉及到二叉树的遍历时，一般都是DFS（先序遍历），因此可以先搭好遍历框架
+  - 2.DFS（先序遍历）：
+    - 由于设计到路径公用，所以，用完该节点并向上回溯时，需要把该节点从路径中删除
+  - 3.本题中的路径由于在回溯的过程中会经历删除节点，所以在叶子节点添加到res的时候，需要复制一个快照进行添加，避免出现回溯到根节点时的path是[]空的情况
+- 注意：
+  - **==做二叉树遍历相关的题目，先不要着急搅进去。先搭好遍历的框架【一般为先序遍历（DFS） 】==**

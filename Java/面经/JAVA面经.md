@@ -125,6 +125,88 @@ https://blog.csdn.net/zhangpower1993/article/details/89518780
 
 
 
+## 5.多线程中wait（）-【notify（）】和sleep（）的区别
+
+- wait（）和sleep（）
+  - sleep（）
+    - sleep（）方法是Thread类中的静态方法
+    - sleep（）方法使当前线程暂停执行指定的时间，让出cpu给其他线程，时间到了会自动恢复运行状态
+    - 调用sleep（）方法，不会释放对象锁
+    - sleep（）方法会抛出异常
+    - 可以在任何地方使用
+    - **==会自动恢复运行状态==**
+  - wait（）
+    - wait（）是Object类中的成员方法
+    - wait（）使当前线程暂停**==并让出同步资源锁==**，以便其他正在等待的线程得到资源并运行
+    - 调用wait（）方法会放弃对象锁，进入等待此对象锁的等待锁定池
+    - wait（）方法不会抛出异常
+    - wait（）方法只能在同步方法和同步代码块中使用
+    - **==需要notify（）/notifyAll（）唤醒指定的线程或所有线程==**
+- notify（）方法
+  - 唤醒处于等待状态的线程
+  - 只能在同步方法和同步代码块中运行，如果有多线等待唤醒的线程，就随机挑选一个唤醒。
+  - notify（）方法调用后，当前线程不会立刻释放对象锁，要等到当前线程执行完毕后再释放锁。
+
+## 5.两个线程交替打印1-100
+
+- 流程：
+  - 1.创建一个类，实现Runable接口，并作为对象锁
+  - 2.在同步代码块Synchronized中
+  - 3.先唤醒notify（），由于后面会进入wait（），所以必须手动唤醒。也是为了唤醒另外一个线程，并进入就绪状态
+  - 4.进行i++
+  - 5.进入wait（）状态，让出资源并释放锁，此时另外一个唤醒且就绪状态的线程会争夺锁并打印i
+
+```java
+public class ThreadTest implements Runnable{
+    int i = 1;
+    @Override
+    public void run() {
+        while(true){
+            //this只带ThreadTest，对象锁
+            synchronized (this){
+                //唤醒另外一个正在等待的线程，唤醒之前wait()的线程
+                //由于上一次i++完之后，线程进入了wait，所以需要手动notify
+                notify();
+                try {
+                    //暂停当前进程100ms，为了有交替打印的效果
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if(i <= 100){
+                    System.out.println(Thread.currentThread().getName() + ":" + i);
+                    i++;
+                    try {
+                        //放弃资源让出锁，等待
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        //只有一个ThreadTest线程对象
+        ThreadTest threadTest = new ThreadTest();
+        //创建两个线程，对ThreadTest对象进行多线程操作
+        Thread t1 = new Thread(threadTest);
+        Thread t2 = new Thread(threadTest);
+
+        t1.setName("线程1");
+        t2.setName("线程2");
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+
+
+## 6.多线程中的数据可见性
+
 
 
 
@@ -325,6 +407,245 @@ https://www.cnblogs.com/surui/p/11669346.html
 
 # 五、数据库
 
+https://blog.csdn.net/qq_22222499/article/details/79060495
+
+## 0.Mysql语句大全
+
+- 一、几个基本函数的执行顺序
+  - 先从这个表里查询（from），然后经过条件的过滤（where）后，分组（group by）之后才能使用分组函数，如果不满意可以再进行过滤（having），查完后做一个排序（order by），最后查找输出（select）
+
+```mysql
+select    6
+from      1
+where     2
+group by  3
+having    4
+order by  5
+
+```
+
+- 二、多表联合查询
+
+```mysql
+1.内连接：能匹配的信息都显示出来
+(inner) join 
+on
+2.外连接：有主副之分，把主表信息都匹配并显示出，没有就显示null
+left join  //左边是主表
+on
+right join //右边是主表
+on
+3.结果合并
+select ...
+union
+select ...
+```
+
+- 三、分页查询
+
+```mysql
+```
+
+
+
+- 四、增、删、改语句
+- 五、建表语句
+- 六、索引语句
+
+- 详细版本：
+- 1.查询语句
+
+```mysql
+select
+	date as d
+from
+	table;
+```
+
+- 2.条件查询
+
+```mysql
+select 
+	date as d
+from
+	table
+where
+	ename = 'SMITH';
+```
+
+- 查询的几种情况
+
+  - 范围查询/范围外查询
+
+  ```mysql
+  select
+  	name
+  from
+  	emp
+  where
+  	//范围内查询
+  	sal >= 1000 and sal <= 3000;
+  	//范围外查询
+  	sal not in (1000,3000)
+  ```
+
+  - 首字母范围查询
+
+  ```mysql
+  select
+  	name
+  from
+  	emp
+  where
+  	name between 'A' and 'C';
+  ```
+
+  - 查询不为空/为空
+
+  ```mysql
+  select
+  	name
+  from
+  	emp
+  where
+  	//不为空
+  	comm is not null
+  	//为空
+  	comm is null
+  ```
+
+  - 与查询/或操作
+
+  ```mysql
+  select
+  	ename as name, job
+  from
+  	emp
+  where
+  	//或操作
+  	job = 'saleman' or job = 'manager';
+  	//与操作
+  	job = 'saleman' and sal > 2000;与查询/或操作
+  ```
+
+  - 模糊查询
+
+  适配符%和_
+
+  %：表示多个字符
+
+  _：表示任意1个字符
+
+  ```mysql
+  select
+  	name
+  from
+  	emp
+  where 
+  	//%多字符模糊查询
+  	name like '%O%'
+  	//_单字符模糊查询
+  	name like '_O_'
+  ```
+
+- 2.排序
+
+  - 升序/降序排列
+
+  ```mysql
+  select 
+  	name,sal
+  from
+  	emp
+  order by 
+  	sal asc //升序ascending
+  order by 
+  	sal desc //降序descending
+  ```
+
+- 3.分组函数
+
+  - 分组函数都是针对“某一组”数据进行操作，且不能在where子句中使用，因为group by是在where执行之后才会执行的，分组函数必须分完组之后才能用。
+    - count计数
+      - count(*)和count()的区别：前者表示统计总记录条数，后者表示count(name)统计name不为null的数据总数量
+    - sum求和
+    - avg平均值
+    - max最大值
+    - min最小值
+
+- 4.单行处理函数
+
+  - ifnull（comm，0）空处理函数
+    - 由于数据库运算中，只要有null参与，结果一定是null，所以需要换算成0
+
+- 5.group by分组
+
+  - 按照某个字段过着某些字段进行分组，例如：group by job，按照job的类型进行分组
+
+  ```mysql
+  select
+  	max(sal)
+  from
+  	emp
+  //每个岗位的最高薪资
+  group by 
+  	job
+  //每个部门的每个岗位的最高薪资
+  group by 
+  	deptno,job
+  ```
+
+- 6.having
+
+  - 对分组之后的数据进行再次过滤
+
+  where搞不定的情况：例如where后不能根分组函数，但是having后面可以跟
+
+  ```mysql
+  select
+  	deptno, avg(sal)
+  from
+  	emp
+  group by 
+  	deptno 
+  having 
+  	avg(sal) > 2000;
+  ```
+
+- 多表联合查询
+
+  - 内连接：等值连接（on条件是=）、非等值连接（on条件是范围）、自连接（连自己表），两表没有主副之分，能匹配的都查出来
+
+  ```mysql
+  select
+  	e.ename, d.dname
+  from
+  	emp e
+  (inner) join
+  	dept d
+  on
+  	e.deptno = d.deptno
+  ```
+
+  - 外连接：把主表查询出来，左外连接&右外连接
+
+  ```mysql
+  select
+  	a.ename as '员工', b.ename as '领导'
+  from
+  	emp a
+  left join
+  	emp b
+  on
+  	a.mgr = b.empno
+  ```
+
+  
+
+  - 
+
+  
+
 ## 1.Mysql的四个特性
 
 ACID（原子性、一致性、隔离性、永久性）
@@ -383,6 +704,32 @@ https://blog.csdn.net/weixin_43971764/article/details/88677688
   
   ![image-20211003101844894](D:/Typora/Typora_Note/Java/%E9%9D%A2%E7%BB%8F/JAVA%E9%9D%A2%E7%BB%8F.assets/image-20211003101844894.png)
 
+## 4.char和varchar的区别
+
+- char（m-个数）：定长不可变字符串
+
+  - 定长：当前字段可以存储的字符个数是固定的
+
+  - 不可变：字段在硬盘上的存储空间是固定的
+
+    -  sex char(3)
+
+       insert into test1 values('abc')  【a】 【b】 【c】
+
+       insert into test1 values('ef')  【e】 【f】 【空格】
+
+- varchar（m）：定长可变字符串
+
+  - 定长：当前字段可以存储的字符个数是固定的
+
+  - 可变：字段在硬盘上存储字符空间可以根据实际情况进行【缩小】
+
+    -  ename varchar(3)
+
+        insert into test1 values('abc') #硬盘 【a】【b】【c】
+
+        insert into test1 values('ef')  #硬盘 【e】【f】-会缩小成2
+
 
 
 # -------------------------------------------
@@ -399,11 +746,15 @@ https://blog.csdn.net/weixin_43971764/article/details/88677688
 | 继承/实现     | 不能实例化，只能继承                                         | 只能实现，可以接口extends接口实现多继承 |
 | 类中属性/方法 | 含有抽象方法一定是抽象类，抽象类不一定有抽象方法（被重写掉了）；变量可以是所有类型 | 只能是抽象方法和静态变量                |
 | 构造方法      | 抽象类有，但是不能用，只能子类调用                           | 没有构造方法                            |
+| 作用          | 过滤接口的不想要实现的抽象方法                               |                                         |
+
+
 
 ## 2.String和StringBuffer的区别
 
 String:
 
+- 0.String是final修饰的，不能被继承，且不是静态类，有String.方法的
 - 1.是不可变对象，修改时会重新建立对象，并指向
 - 2.为不可变对象,一旦被创建,就不能修改它的值。
 - 3.对于已经存在的String对象的修改都是重新创建一个新的对象,然后把新的值保存进去。
@@ -418,6 +769,17 @@ StringBuffer:
 字符串连接操作中**StringBuffer**的效率要明显比**String**高;
 **String**对象是不可变对象,每次操作String都会建立新的对象来保存新的值。
 **StringBuffer**对象实例化后,只对这一个对象操作。
+
+## 3.静态类和非静态类的区别
+
+- 静态类的特点：
+  - 1.全局唯一，任何一次修改都是全局性的影响
+  - 2.只加载一次，优先于非静态
+  - ==3.使用方法上不依赖于实例对象==
+  - 4.生命周期属于类级别，从JVM加载开始到JVM加载结束
+- 静态类和非静态类之间的区别
+  - 静态类可以不用创建外部类就可以使用
+  - 非静态类要创建外部实例，先实例化，才能使用
 
 # -------------------------------------------
 
@@ -538,7 +900,7 @@ https://blog.csdn.net/Guyui233/article/details/118207519?spm=1001.2014.3001.5501
 
 - **AOP简介**
 
-  - AOP（Aspect-Oriented Programming，面向切面编程），能将那些与业务无关的功能（事务处理、日志管理、权限控制）封装起来，减少重复代码，降低模块间的耦合性，提升可扩展性和可维护性。
+  - AOP（Aspect-Oriented Programming，面向切面编程），能将那些与业务无关的功能（事务处理、日志管理、**权限控制**）封装起来，减少重复代码，降低模块间的耦合性，提升可扩展性和可维护性。
 
 - **AOP原理【动态代理】：**
 
@@ -724,7 +1086,7 @@ https://blog.csdn.net/Guyui233/article/details/118207519?spm=1001.2014.3001.5501
 - SpringBoot自动配置装载时代
   - SpringBoot有一个全局配置文件：application.properties或者application.yml，只需要在这个全局文件里面配置各种各样的参数即可。例如：server.port = 88
 - **==SpringBoot自动装配原理【面试总结版】==**
-  - SpringBoot启动时会通过**@EnableAutoConfiguration注解**找到**META-INF/spring.factories**配置文件中所有的自动配置类，并对其进行加载，这些自动配置类都是以**xxxAutoConfiguration结尾**的，他实际上是一个java配置类形式的Spring容器配置类，他能通过该以**xxxProperties结尾**命名的类中获取在全局配置文件中配置的属性，如**server.port**，而xxxProperties类是通过@ConfigurationProperties注解与全局配置文件中的对应属性进行绑定的
+  - SpringBoot启动时会通过**@EnableAutoConfiguration注解**找到**META-INF/spring.factories**配置文件中所有的自动配置类，并对其进行加载，这些自动配置类都是以**xxxAutoConfiguration结尾**的，还会将starter类下所有包中，我们自己写的组件【controller、service】记载。他实际上是一个java配置类形式的Spring容器配置类，他能通过该以**xxxProperties结尾**命名的类中获取在全局配置文件中配置的属性，如**server.port**，而xxxProperties类是通过@ConfigurationProperties注解与全局配置文件中的对应属性进行绑定的
 
 
 
@@ -748,6 +1110,57 @@ https://zhuanlan.zhihu.com/p/138645236
 
 ![image-20211003101712971](D:/Typora/Typora_Note/Java/%E9%9D%A2%E7%BB%8F/JAVA%E9%9D%A2%E7%BB%8F.assets/image-20211003101712971.png)
 
+## 2.分布式锁
+
+https://www.cnblogs.com/liuqingzheng/p/11080501.html
+
+- 什么是分布式锁？
+
+  - 在开发中，如果需要对某一个共享变量进行多线程同步访问时，可以用锁来进行处理——但是仅限于单机应用。发展到分布式集群时代，一个应用需要部署到几台机器上然后做负载均衡。如下图。
+
+  - 下图中，变量A存在于三个服务器内存中，如果不加任何控制的话，变量A同时都会分配一块内存，三个请求发过来同时对这个变量操作，显然结果是不对的！即使不是同时发过来，变量A之间不存在共享，也不具有可见性，处理的结果也是不对的！
+
+  - 因此需要分布式锁，来实现一种跨机器的互斥机制来控制共享资源的访问
+
+    ![image-20211021105436537](JAVA面经.assets/image-20211021105436537.png)
+
+- 分布式锁应该具备哪些条件
+
+  - 1、在分布式系统环境下，一个方法在同一时间只能被一个机器的一个线程执行；
+  - 2、高可用的获取锁与释放锁；
+  - 3、高性能的获取锁与释放锁；
+  - 4、具备可重入特性；
+  - 5、具备锁失效机制，防止死锁；
+  - 6、具备非阻塞锁特性，即没有获取到锁将直接返回获取锁失败
+
+- 分布式锁的三种实现方式
+
+  - 基于数据库实现分布式锁
+
+    - 核心思想：
+
+      - 在数据库中创建一个表，表中包含“方法名”等字段，并在方法名字段上创建**==唯一索引==**，想要执行某个方法，就使用这个方法名向表中插入数据，成功插入则获取锁，执行完成后删除对应的行数据来**释放锁**
+
+      ![image-20211021110030221](JAVA面经.assets/image-20211021110030221.png)
+
+  - 基于缓存（Redis）实现分布式锁
+
+    - 实现思想：
+
+      - 获取锁的时候，使用setnx加锁，并用expire命令为锁添加一个超时时间，超过改时间则自动释放锁，锁的value值为随机生成的UUID，通过id在释放锁的时候进行判断。
+      -  过这个时间则放弃获取锁
+      - 释放所得时候，通过UUID判断是不是该锁，若是该锁，则执行delete进行锁释放
+
+      ![image-20211021110716981](JAVA面经.assets/image-20211021110716981.png)
+
+  - 基于Zookeeper实现分布式锁
+
+    - 待补充
+
+
+
+
+
 
 
 # -------------------------------------------
@@ -760,3 +1173,27 @@ https://zhuanlan.zhihu.com/p/138645236
 
 # 十五、Redis6
 
+## 1.Redis和Mysql事务的区别
+
+- Redis事务的三个特性
+  - 1.**单独的隔离操作**：事务中的所有命令都会序列化、按顺序地执行。事务在执行的过程中，不会被其他客户端发送来的命令请求所打断；
+  - 2.**没有隔离级别**的概念：队列中的命令没有提交之前都不会实际的被执行，因为事务提交前任何指令都不会被实际执行，也就不存在”事务内的查询要看到事务里的更新，在事务外查询不能看到”这个让人万分头痛的问题；
+  - 3.**不保证原子性**：redis同一个事务中如果有一条命令执行失败，其后的命令仍然会被执行，没有回滚；
+
+区别：
+
+- 事务命令的区别
+  - mysql
+    - Start transaction：显示的开始一个事务
+    - Commit：提交事务，将对数据库镜像的所有的修改变成永久性的
+    - Rollback：结束用户的事务，并撤销现在正在进行的未提交的修改
+  - Redis：
+    - Multi：标记事务的开始
+    - Exec：执行事务的commands队列
+    - Discard：结束事务，并清楚commands队列
+- 默认状态的区别
+  - mysql：
+    - mysql会默认开启一个事务，且缺省设置为自动提交，即每成功执行一次sql，一个事务就会马上commit，所以不能rollback
+    - 非默认情况下，可以rollback
+  - Redis：
+    - redis默认不会开启事务，即command会立即执行，而不会排队，并不支持rollback
