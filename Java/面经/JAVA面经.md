@@ -100,6 +100,65 @@ https://blog.csdn.net/zhangpower1993/article/details/89518780
     - 安全性算法步骤：
     - 检查当前的剩余资源是否能满足某个进程的最大需求，如果可以，就把该进程加入到安全序列，并把该进程所持有的的资源全部回收。不断重复上述过程，看最终是否能让所有进程都进入到安全序列中
 
+## 3.5死锁的java代码实现
+
+- 利用Synchronized（对象锁）的方式，锁住互相占有，互相需求的资源
+
+```java
+public class LockTest {
+   public static String obj1 = "obj1";
+   public static String obj2 = "obj2";
+   public static void main(String[] args) {
+      LockA la = new LockA();
+      //新开一个线程并执行
+      new Thread(la).start();
+      LockB lb = new LockB();
+      //新开一个线程并执行
+      new Thread(lb).start();
+   }
+}
+class LockA implements Runnable{
+   public void run() {
+      try {
+         System.out.println(new Date().toString() + " LockA 开始执行");
+         while(true){
+            synchronized (LockTest.obj1) {
+               System.out.println(new Date().toString() + " LockA 锁住 obj1");
+               Thread.sleep(3000); // 此处等待是给B能锁住机会
+               synchronized (LockTest.obj2) {
+                  System.out.println(new Date().toString() + " LockA 锁住 obj2");
+                  Thread.sleep(60 * 1000); // 为测试，占用了就不放
+               }
+            }
+         }
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
+   }
+}
+class LockB implements Runnable{
+   public void run() {
+      try {
+         System.out.println(new Date().toString() + " LockB 开始执行");
+         while(true){
+            synchronized (LockTest.obj2) {
+               System.out.println(new Date().toString() + " LockB 锁住 obj2");
+               Thread.sleep(3000); // 此处等待是给A能锁住机会
+               synchronized (LockTest.obj1) {
+                  System.out.println(new Date().toString() + " LockB 锁住 obj1");
+                  Thread.sleep(60 * 1000); // 为测试，占用了就不放
+               }
+            }
+         }
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
+   }
+}
+```
+
+
+
 ## 4.java中的i++是不是一个原子操作？
 
 不是，由于java操作涉及多线程，线程间会互相干扰。
@@ -444,13 +503,79 @@ select ...
 - 三、分页查询
 
 ```mysql
+1.0代表其实位置，1代表取几条数据
+limit 0,1
+2.0代表其实位置，offset代表往后第几位
+limt 1 offset 2//代表第一位往后两位，即第三位
+```
+
+- 四、增、删、改语句
+
+```mysql
+1.增加数据(字段可以省略不写)
+insert into t_student(no,name,sex,classno,birth) values(1,'zhangsan','1','gaosan1ban','1950-10-12');
+2.删除数据
+delete from t_studen where id = 1
+3.修改数据
+update dept1 set loc='SHANGHAI', dname='HR' where deptno = 20
+
+
 ```
 
 
 
-- 四、增、删、改语句
 - 五、建表语句
+
+```mysql
+1.创建表
+create table 表名(
+	no bigint,
+    name varchar(255),
+    sex char(1),
+    classno varchar(255),
+    //添加非空约束
+    birth char(10) not null
+    //添加唯一性约束
+    birth char(10) unique
+    //添加主键约束
+    birth char(10) primary key
+);
+2.删除表
+drop table if exists t_student;
+3.表的复制(查出来的临时表复制，持久化)
+create table 表名 as select语句：
+```
+
+
+
 - 六、索引语句
+
+索引其实就是
+
+```mysql
+```
+
+
+
+- 七、事务语句
+
+```mysql
+1.开启事务
+start transaction
+2.提交事务
+commit;
+3.回滚事务
+rollback;
+```
+
+
+
+- 八
+- 九
+
+
+
+
 
 - 详细版本：
 - 1.查询语句
@@ -730,7 +855,27 @@ https://blog.csdn.net/weixin_43971764/article/details/88677688
 
         insert into test1 values('ef')  #硬盘 【e】【f】-会缩小成2
 
+## 5.索引的本质
 
+https://blog.csdn.net/woshimeilinda/article/details/104532214
+
+- 数据库在查询一张表时，有两种检索方式：
+
+  - 全表扫描——很慢
+  - 索引检索——效率很高
+
+- 索引的作用
+
+  - 如果不添加索引，select * from where...即使扫描到该值，还是会继续扫描下去，直到全盘扫描，所以查询会很慢。——全表扫描
+  - 使用索引，会把这一列以二叉树（B+树）的数据结构存储，可以快速找到，效率快一半
+
+  ![image-20211026222547452](JAVA面经.assets/image-20211026222547452.png)
+
+- 索引的本质：
+
+  索引其实是一种数据结构
+
+  - 就是把一列单独拿出来，用一些特殊的数据结构（二叉树、B+树）来存储，以达到快速检索的效果
 
 # -------------------------------------------
 
@@ -770,16 +915,52 @@ StringBuffer:
 **String**对象是不可变对象,每次操作String都会建立新的对象来保存新的值。
 **StringBuffer**对象实例化后,只对这一个对象操作。
 
-## 3.静态类和非静态类的区别
+## 3.静态类【内部静态类】和非静态类的区别
 
-- 静态类的特点：
+https://blog.csdn.net/weixin_45104211/article/details/98640693
+
+- 本意是想区分静态方法和实例方法的区别，没想到引出了下列知识点
+- 注意：
+  - 一般是不用static修饰类的，static修饰类是匿名内部类。【静态类=静态内部类】，所以静态类是以成员变量的形式，存在于外部类的里面
+
+
+
+- 静态的特点：
+
   - 1.全局唯一，任何一次修改都是全局性的影响
   - 2.只加载一次，优先于非静态
   - ==3.使用方法上不依赖于实例对象==
   - 4.生命周期属于类级别，从JVM加载开始到JVM加载结束
+
 - 静态类和非静态类之间的区别
-  - 静态类可以不用创建外部类就可以使用
-  - 非静态类要创建外部实例，先实例化，才能使用
+  - （1）内部静态类不需要有指向外部类的引用。但非静态内部类需要持有对外部类的引用。【指创建实例时】
+  - （2）非静态内部类能够访问外部类的静态和非静态成员。静态类不能访问外部类的非静态成员。他只能访问外部类的静态成员。
+  - （3）一个非静态内部类不能脱离外部类实体被创建，一个非静态内部类可以访问外部类的数据和方法，因为他就在外部类里面。
+
+- 静态（内部）类和非静态内部类的创建
+
+  - 静态（内部）类：不需要创建外部类的实例对象
+
+  ```java
+  // 创建静态内部类的实例
+  OuterClass.NestedStaticClass printer = new OuterClass.NestedStaticClass();
+  // 创建静态内部类的非静态方法
+  printer.printMessage();  
+  ```
+
+  
+
+  - 非静态类：需要外部类的实例对象
+
+  ```JAVA
+  // 为了创建非静态内部类，我们需要外部类的实例【指向外部类的引用】
+  OuterClass outer = new OuterClass();    
+  OuterClass.InnerClass inner = outer.new InnerClass();／／这样new出来的
+  // 调用非静态内部类的非静态方法
+  inner.display();
+  ```
+
+  
 
 # -------------------------------------------
 
@@ -1173,6 +1354,8 @@ https://www.cnblogs.com/liuqingzheng/p/11080501.html
 
 # 十五、Redis6
 
+## 0.Redis使用步骤和流程
+
 ## 1.Redis和Mysql事务的区别
 
 - Redis事务的三个特性
@@ -1197,3 +1380,14 @@ https://www.cnblogs.com/liuqingzheng/p/11080501.html
     - 非默认情况下，可以rollback
   - Redis：
     - redis默认不会开启事务，即command会立即执行，而不会排队，并不支持rollback
+
+
+
+
+
+
+
+# 十六、消息中间件RabbitMQ
+
+## 0.RabbitMQ使用步骤和流程
+
