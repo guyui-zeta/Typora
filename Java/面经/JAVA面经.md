@@ -480,7 +480,6 @@ where     2
 group by  3
 having    4
 order by  5
-
 ```
 
 - 二、多表联合查询
@@ -500,7 +499,30 @@ union
 select ...
 ```
 
-- 三、分页查询
+- 三、分组函数&聚合函数
+
+```mysql
+1.分组函数（只能在分组之后使用，不能在where中使用）
+count()计数
+sum()求和
+avg()平均值
+max()最大值
+min（）最小值
+2.聚合函数
+通常要和group by一起使用的，”分组+聚合“
+count(字段):会统计该字段在表中出现的次数，不统计字段为null的记录
+count(1):会统计所有的记录数，包含字段为null的记录
+count(*):包含了所有的列，相当于行数，包含字段为null的记录
+```
+
+```mysql
+1.去重关键字
+select distinct salary 
+```
+
+
+
+- 四、分页查询
 
 ```mysql
 1.0代表其实位置，1代表取几条数据
@@ -509,7 +531,7 @@ limit 0,1
 limt 1 offset 2//代表第一位往后两位，即第三位
 ```
 
-- 四、增、删、改语句
+- 五、增、删、改语句
 
 ```mysql
 1.增加数据(字段可以省略不写)
@@ -518,13 +540,9 @@ insert into t_student(no,name,sex,classno,birth) values(1,'zhangsan','1','gaosan
 delete from t_studen where id = 1
 3.修改数据
 update dept1 set loc='SHANGHAI', dname='HR' where deptno = 20
-
-
 ```
 
-
-
-- 五、建表语句
+- 六、建表语句
 
 ```mysql
 1.创建表
@@ -546,18 +564,20 @@ drop table if exists t_student;
 create table 表名 as select语句：
 ```
 
+- 七、索引语句
 
-
-- 六、索引语句
-
-索引其实就是
+索引其实就是一种数据结构，来加快查询效率（B+树）
 
 ```mysql
+1.创建索引对象
+create index 索引名称 on 表名（字段名）
+create index emp_sal_index on emp(sal)
+2.删除索引对象
+drop index 索引名称 on 表名;
+drop index emp_sal_index on emp
 ```
 
-
-
-- 七、事务语句
+- 八、事务语句
 
 ```mysql
 1.开启事务
@@ -567,11 +587,6 @@ commit;
 3.回滚事务
 rollback;
 ```
-
-
-
-- 八
-- 九
 
 
 
@@ -765,11 +780,6 @@ where
   	a.mgr = b.empno
   ```
 
-  
-
-  - 
-
-  
 
 ## 1.Mysql的四个特性
 
@@ -876,6 +886,20 @@ https://blog.csdn.net/woshimeilinda/article/details/104532214
   索引其实是一种数据结构
 
   - 就是把一列单独拿出来，用一些特殊的数据结构（二叉树、B+树）来存储，以达到快速检索的效果
+
+- 索引的实现原理
+
+  - 通过B+ tree缩小扫描范围，底层索引进行了排序、分区，索引会携带数据在表中的“物理地址”，最终通过索引检索到数据之后，可以直接获取相关的物理地址，然后定位到数据
+
+```mysql
+select * from emp where ename = "SMITH"
+通过索引转换后就变成了:【底层原理】
+select * from emp where 物理地址 = 0x123
+```
+
+
+
+- 
 
 # -------------------------------------------
 
